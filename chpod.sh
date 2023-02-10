@@ -8,6 +8,7 @@ function helpMsg()
 
 namespace=$1
 err_pods=0
+restart_pods=0
 total_pods=-1
 
 if [ $# -ne 1 ]; then
@@ -27,18 +28,22 @@ if [ $? -eq 1 ]; then
 fi
 file="/tmp/pods_$$"
 
-printf "\n[*] Scanning Microservices ...\n\n"
+printf "\n[*] Scanning Microservices on: $namespace ...\n\n"
 while read line; do
     let total_pods++
-    status=$(echo "$line" | awk '{ print $3}')
+    status=$(echo $line | awk '{ print $3}')
+    restarts=$(echo $line | awk '{ print $4 }')
     if [ "STATUS" != $status ] && [ "Running" != $status ]; then
         let err_pods++
         pod_name=$(echo $line | awk '{ print $1 }')
         pod_status=$(echo $line | awk '{ print $3 }') 
 
-        printf "\n[+] Microservice: $pod_name\n    Status:       $pod_status\n--- --- --- --- --- --- --- --- --- --- --- ---\n"
+        printf "\n[!] Microservice: $pod_name\n    Status:       $pod_status\n--- --- --- --- --- --- --- --- --- --- --- ---\n"
+    elif [[ $restarts -ne "0" ]]; then
+        let restart_pods++
     fi
 done < $file
 rm -f $file
 
-printf "\n[*] Microservices running: $total_pods\n[*] Microservices failing: $err_pods\n\n"
+printf "\n[*] Results\n[+] Running: $total_pods\n[+] Restarting: $restart_pods\n[+] Failing: $err_pods\n\n"
+
